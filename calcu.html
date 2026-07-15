@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Zanattex - Guia de Formação de Preço de Frete</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts & Material Icons -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+        background-color: #f8fafc;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen text-slate-800 flex flex-col">
+    <!-- Header -->
+    <header
+      class="bg-gradient-to-r from-slate-900 to-blue-950 text-white shadow-md px-6 py-4 flex flex-col md:flex-row justify-between items-center gap-4"
+    >
+      <div class="flex items-center gap-3">
+        <div
+          class="bg-blue-600 text-white p-2 rounded-xl shadow-inner flex items-center justify-center"
+        >
+          <span class="material-icons text-2xl">account_balance_wallet</span>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">
+            Formação de Preço de Frete
+          </h1>
+          <p class="text-xs text-slate-400">
+            Guia Técnico e Simulador de Custos Logísticos — Zanattex
+          </p>
+        </div>
+      </div>
+      <div
+        class="text-xs bg-blue-900/40 border border-blue-700/50 px-3 py-1.5 rounded-full text-blue-200"
+      >
+        Foco em Cargas Fracionadas e Cubadas (Têxtil)
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main
+      class="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6 max-w-7xl w-full mx-auto"
+    >
+      <!-- Left: Interactive Simulator (5 cols) -->
+      <section class="lg:col-span-5 flex flex-col gap-6">
+        <div
+          class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col gap-4"
+        >
+          <div class="flex items-center gap-2 pb-2 border-b border-slate-100">
+            <span class="material-icons text-blue-600">calculate</span>
+            <h2 class="font-semibold text-slate-800 text-lg">
+              Simulador de Distribuição
+            </h2>
+          </div>
+          <p class="text-xs text-slate-500 -mt-2">
+            Preencha os valores estimados de uma viagem para entender a
+            composição percentual do preço final do frete.
+          </p>
+
+          <!-- Inputs -->
+          <div class="flex flex-col gap-3 text-sm">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >Tipo de Veículo</label
+              >
+              <select
+                id="sim-vehicle-type"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option value="truck">VW 24250 Truck - FBA3J62</option>
+                <option value="carreta">Mercedes 2426 Truck - EGJ8G94</option>
+                <option value="carreta">
+                  VW 24280 Automático Truck - EEN9F55
+                </option>
+                <option value="carreta">VW 19.380 Cavalinho - TLJ2I55</option>
+                <option value="carreta">VW 19.380 Cavalinho - TLK8C96</option>
+                <option value="carreta">
+                  Scania R124/420 Cavalinho - JOM2J33
+                </option>
+                <option value="carreta">Carreta 01 - GHG5B16</option>
+                <option value="carreta">Carreta 02 - EGK0H88</option>
+                <option value="carreta">Carreta 03 - CYN2A50</option>
+                <option value="carreta">Carreta 04 - ATP8D87</option>
+                <option value="carreta">Carreta 05 - ASB2A87</option>
+                <option value="carreta">Carreta 06 - ETU6I20</option>
+              </select>
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >1. Combustível / Diesel (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-diesel"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >2. Motorista / Diárias (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-driver"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >3. Pedágio / Vale-Pedágio (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-toll"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >4. Manutenção (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-maint"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >5. Arla 32 (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-arla"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >6. Depreciação (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-depreciation"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >7. Seguro (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-insurance"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >8. Gerenciamento de Risco (R$)</label
+              >
+              <input
+                type="number"
+                id="sim-risk"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >9. Impostos / ICMS / ISS (%)</label
+              >
+              <input
+                type="number"
+                id="sim-taxes"
+                step="0.1"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >10. Margem de Lucro desejada (%)</label
+              >
+              <input
+                type="number"
+                id="sim-profit"
+                step="0.1"
+                class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-blue-500 outline-none"
+                oninput="recalculatePercentages()"
+              />
+            </div>
+          </div>
+
+          <!-- Live Results -->
+          <div
+            class="bg-blue-50 p-4 rounded-xl border border-blue-100 flex justify-between items-center mt-2"
+          >
+            <div>
+              <p class="text-xs text-blue-600 font-semibold uppercase">
+                Frete Total Sugerido
+              </p>
+              <h3
+                class="text-2xl font-extrabold text-blue-900"
+                id="total-freight-val"
+              >
+                R$ 7.400,00
+              </h3>
+            </div>
+            <span class="material-icons text-3xl text-blue-500"
+              >local_shipping</span
+            >
+          </div>
+        </div>
+      </section>
+
+      <!-- Right: Breakdown Cards (7 cols) -->
+      <section class="lg:col-span-7 flex flex-col gap-6">
+        <!-- Category Tabs / Navigation -->
+        <div
+          class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col gap-4"
+        >
+          <div
+            class="flex items-center justify-between pb-3 border-b border-slate-100"
+          >
+            <div class="flex items-center gap-2">
+              <span class="material-icons text-indigo-600">list_alt</span>
+              <h2 class="font-semibold text-slate-800 text-lg">
+                Mapeamento de Custos Críticos
+              </h2>
+            </div>
+            <span
+              class="text-xs text-indigo-600 font-bold bg-indigo-50 px-2.5 py-1 rounded-full"
+              >Análise Técnica</span
+            >
+          </div>
+
+          <!-- Interactive Accordion or Cards -->
+          <div class="flex flex-col gap-4">
+            <!-- Card 1: Custos Variáveis -->
+            <div
+              class="border border-slate-100 rounded-xl p-4 hover:border-blue-200 transition bg-slate-50/50"
+            >
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-icons text-amber-500"
+                    >local_gas_station</span
+                  >
+                  <h3 class="font-bold text-slate-800 text-sm">
+                    1. Custos Variáveis (Operacionais)
+                  </h3>
+                </div>
+                <span
+                  class="text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                  id="pct-var"
+                  >~ 40% a 50%</span
+                >
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                São os custos que oscilam diretamente de acordo com a
+                quilometragem rodada. No topo da lista está o **Diesel**
+                (geralmente o maior vilão), seguido pelo **Arla 32** (insumo
+                obrigatório para motores Euro 5/6, consumido na proporção de ~5%
+                do diesel), o desgaste e recapagem de **Pneus**, lubrificantes e
+                **manutenções corretivas** de estrada.
+              </p>
+            </div>
+
+            <!-- Card 2: Custos Fixos -->
+            <div
+              class="border border-slate-100 rounded-xl p-4 hover:border-blue-200 transition bg-slate-50/50"
+            >
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-icons text-blue-500">schedule</span>
+                  <h3 class="font-bold text-slate-800 text-sm">
+                    2. Custos Fixos (Estruturais)
+                  </h3>
+                </div>
+                <span
+                  class="text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                  id="pct-fix"
+                  >~ 20% a 25%</span
+                >
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                Custos que existem mesmo se o caminhão ficar parado no pátio em
+                Arealva. Incluem a **depreciação do veículo**, salários e
+                encargos fixos dos **motoristas**, seguro do caminhão,
+                licenciamento, IPVA e os custos administrativos da estrutura de
+                PCP e logística.
+              </p>
+            </div>
+
+            <!-- Card 3: Taxas de Gerenciamento de Risco -->
+            <div
+              class="border border-slate-100 rounded-xl p-4 hover:border-blue-200 transition bg-slate-50/50"
+            >
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-icons text-rose-500">gavel</span>
+                  <h3 class="font-bold text-slate-800 text-sm">
+                    3. Gerenciamento de Risco (Seguros)
+                  </h3>
+                </div>
+                <span
+                  class="text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                  id="pct-ins"
+                  >~ 5% a 8%</span
+                >
+              </div>
+              <p
+                class="text-xs text-slate-600 leading-relaxed font-medium text-rose-950"
+              >
+                <strong class="text-rose-700">Crítico para a Zanattex:</strong>
+                Cargas de cobertores, mantas e confecção são altamente visadas
+                para roubo. Você deve considerar o **Ad Valorem** (seguro contra
+                acidentes e roubo calculado sobre o valor da nota fiscal) e o
+                **GRIS** (Gerenciamento de Risco, cobrado para monitoramento via
+                satélite ou escolta).
+              </p>
+            </div>
+
+            <!-- Card 4: Tributação -->
+            <div
+              class="border border-slate-100 rounded-xl p-4 hover:border-blue-200 transition bg-slate-50/50"
+            >
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-icons text-emerald-500">percent</span>
+                  <h3 class="font-bold text-slate-800 text-sm">
+                    4. Tributos (Impostos sobre Transporte)
+                  </h3>
+                </div>
+                <span
+                  class="text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                  id="pct-tax"
+                  >~ 10% a 15%</span
+                >
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                No transporte interestadual ou intermunicipal no Brasil, incide
+                o **ICMS** (que varia de 12% a 18% dependendo da rota). Se for
+                um frete municipal, incide o **ISSQN**. Também devem ser
+                calculados o PIS e COFINS incidentes sobre o faturamento do
+                serviço.
+              </p>
+            </div>
+
+            <!-- Card 5: Pedágios e Taxas Acessórias -->
+            <div
+              class="border border-slate-100 rounded-xl p-4 hover:border-blue-200 transition bg-slate-50/50"
+            >
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="material-icons text-purple-500">toll</span>
+                  <h3 class="font-bold text-slate-800 text-sm">
+                    5. Pedágios e Taxas Extras
+                  </h3>
+                </div>
+                <span
+                  class="text-xs font-semibold text-slate-500 uppercase tracking-wider"
+                  id="pct-toll"
+                  >~ 8% a 12%</span
+                >
+              </div>
+              <p class="text-xs text-slate-600 leading-relaxed">
+                O **Pedágio** no Brasil é obrigatório e, por lei (Vale-Pedágio),
+                deve ser antecipado pelo contratante da carga, não podendo ser
+                descontado do valor do frete do motorista. Outras taxas incluem
+                a **TRT** (Taxa de Restrição de Trânsito para capitais) e
+                **TDE** (Dificuldade de Entrega).
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer Summary -->
+    <footer
+      class="bg-white border-t border-slate-200 px-6 py-4 text-center text-xs text-slate-400"
+    >
+      Zanattex Indústria Têxtil Ltda — Arealva/SP. Todos os direitos reservados.
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+      function recalculatePercentages() {
+        // Get raw input values
+        const diesel =
+          parseFloat(document.getElementById("sim-diesel").value) || 0;
+        const driver =
+          parseFloat(document.getElementById("sim-driver").value) || 0;
+        const toll = parseFloat(document.getElementById("sim-toll").value) || 0;
+        const maint =
+          parseFloat(document.getElementById("sim-maint").value) || 0;
+        const arla = parseFloat(document.getElementById("sim-arla").value) || 0;
+        const depreciation =
+          parseFloat(document.getElementById("sim-depreciation").value) || 0;
+        const ins =
+          parseFloat(document.getElementById("sim-insurance").value) || 0;
+        const risk = parseFloat(document.getElementById("sim-risk").value) || 0;
+        const taxesPct =
+          parseFloat(document.getElementById("sim-taxes").value) || 0;
+        const profitPct =
+          parseFloat(document.getElementById("sim-profit").value) || 0;
+
+        const baseCosts =
+          diesel + driver + toll + maint + arla + depreciation + ins + risk;
+        const taxes = baseCosts * (taxesPct / 100);
+        const costs = baseCosts + taxes;
+        const profit = costs * (profitPct / 100);
+        const total = costs + profit;
+
+        // Format to BRL
+        document.getElementById("total-freight-val").textContent =
+          total.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+
+        if (total > 0) {
+          // Update live badges in the cards
+          const varPct = ((diesel + maint + arla) / total) * 100;
+          const fixPct = ((driver + depreciation) / total) * 100;
+          const insPct = ((ins + risk) / total) * 100;
+          const taxPct = (taxes / total) * 100;
+          const tollPct = (toll / total) * 100;
+
+          document.getElementById("pct-var").textContent =
+            `${varPct.toFixed(1)}% do frete`;
+          document.getElementById("pct-fix").textContent =
+            `${fixPct.toFixed(1)}% do frete`;
+          document.getElementById("pct-ins").textContent =
+            `${insPct.toFixed(1)}% do frete`;
+          document.getElementById("pct-tax").textContent =
+            `${taxPct.toFixed(1)}% do frete`;
+          document.getElementById("pct-toll").textContent =
+            `${tollPct.toFixed(1)}% do frete`;
+        }
+      }
+
+      // Initialize calculations
+      window.onload = function () {
+        recalculatePercentages();
+      };
+    </script>
+  </body>
+</html>
