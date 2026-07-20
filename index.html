@@ -173,7 +173,7 @@
               <span>Ida e Volta</span>
               <select
                 id="sim-round-trip"
-                onchange="updateVariableCostsFromDistance()"
+                onchange="onRoundTripChange()"
                 class="bg-white border border-slate-300 rounded-lg px-2 py-1 text-right font-semibold text-slate-700 focus:ring-2 focus:ring-red-500 outline-none"
               >
                 <option value="nao">Não</option>
@@ -184,7 +184,8 @@
               Confira a distância no Google Maps e preencha o campo "km" — o
               combustível é calculado automaticamente a partir do consumo médio
               e do preço do diesel. Se marcar "Ida e Volta = Sim", o cálculo
-              dobra a distância informada (percurso de volta incluído).
+              dobra a distância informada e também o valor do pedágio
+              (percurso de volta incluído).
             </p>
           </div>
 
@@ -249,13 +250,23 @@
                 />
               </div>
               <div class="flex flex-col gap-1">
-                <label class="text-xs font-semibold text-slate-500 uppercase"
-                  >Preço do Diesel (R$/L)</label
-                >
+                <div class="flex items-center justify-between gap-1">
+                  <label class="text-xs font-semibold text-slate-500 uppercase"
+                    >Preço do Diesel (R$/L)</label
+                  >
+                  <a
+                    href="https://precos.petrobras.com.br/w/preco-diesel-sp"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-[11px] text-red-600 hover:underline whitespace-nowrap"
+                    >Consultar ↗</a
+                  >
+                </div>
                 <input
                   type="number"
                   id="sim-diesel-price"
                   step="0.01"
+                  title="Consulte a referência de preço da Petrobras (link 'Consultar') e informe o preço real pago no seu posto/fornecedor."
                   class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-red-500 outline-none"
                   oninput="updateDieselFromDistance()"
                 />
@@ -296,15 +307,29 @@
             </div>
 
             <div class="flex flex-col gap-1">
-              <label class="text-xs font-semibold text-slate-500 uppercase"
-                >3. Pedágio / Vale-Pedágio (R$)</label
-              >
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-semibold text-slate-500 uppercase"
+                  >3. Pedágio / Vale-Pedágio (R$)</label
+                >
+                <a
+                  href="https://www.webrouter.com.br/way/#/calcularRota"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="text-[11px] text-red-600 hover:underline"
+                  >Calcular no WebRouter ↗</a
+                >
+              </div>
               <input
                 type="number"
                 id="sim-toll"
+                title="Informe o pedágio de ida (uma direção). Ao marcar 'Ida e Volta = Sim', o valor é dobrado automaticamente."
                 class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold focus:ring-2 focus:ring-red-500 outline-none"
                 oninput="recalculatePercentages()"
               />
+              <p class="text-[11px] text-slate-500 leading-snug">
+                Informe o pedágio de ida (uma direção). Ao marcar "Ida e Volta
+                = Sim", o valor é dobrado automaticamente.
+              </p>
             </div>
 
             <div class="flex flex-col gap-1">
@@ -678,6 +703,23 @@
         const isRoundTrip =
           document.getElementById("sim-round-trip").value === "sim";
         return isRoundTrip ? distanceKm * 2 : distanceKm;
+      }
+
+      // Ao trocar "Ida e Volta", o diesel e o seguro já se recalculam a
+      // partir da distância (getEffectiveKm). O pedágio é digitado à mão
+      // (valor de ida), então aqui dobramos o valor do campo ao marcar
+      // "Sim" e o dividimos de volta ao marcar "Não", mantendo o campo
+      // sempre coerente com o tipo de viagem selecionado.
+      function onRoundTripChange() {
+        const isRoundTrip =
+          document.getElementById("sim-round-trip").value === "sim";
+        const tollField = document.getElementById("sim-toll");
+        const toll = parseFloat(tollField.value) || 0;
+        if (toll > 0) {
+          tollField.value = (isRoundTrip ? toll * 2 : toll / 2).toFixed(2);
+        }
+        updateVariableCostsFromDistance();
+        recalculatePercentages();
       }
 
       function updateVariableCostsFromDistance() {
