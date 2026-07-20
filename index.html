@@ -149,13 +149,11 @@
             <input
               type="text"
               id="dest-search"
-              list="dest-routes-list"
               placeholder="Buscar cidade ou endereço de destino..."
               autocomplete="off"
               oninput="onDestSearchInput(this.value)"
               class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"
             />
-            <datalist id="dest-routes-list"></datalist>
             <div
               class="flex justify-between items-center text-xs text-slate-500 bg-slate-50 rounded-lg px-3 py-2 gap-2"
             >
@@ -792,92 +790,12 @@
         recalculatePercentages();
       }
 
-      // ==========================================================
-      // Rotas salvas: ao digitar um destino que já foi calculado
-      // antes, preenche km/pedágio/veículo automaticamente em vez de
-      // ter que redigitar tudo de novo em fretes recorrentes.
-      // Guardado no localStorage (fica só neste navegador/computador).
-      // ==========================================================
-      const SAVED_ROUTES_KEY = "zanattex_frete_rotas";
-
-      function loadSavedRoutes() {
-        try {
-          return JSON.parse(localStorage.getItem(SAVED_ROUTES_KEY)) || {};
-        } catch {
-          return {};
-        }
-      }
-
-      function normalizeDestKey(dest) {
-        return dest.trim().toLowerCase();
-      }
-
-      function refreshDestRoutesList() {
-        const routes = loadSavedRoutes();
-        const datalist = document.getElementById("dest-routes-list");
-        datalist.innerHTML = "";
-        Object.values(routes).forEach((route) => {
-          const option = document.createElement("option");
-          option.value = route.label;
-          datalist.appendChild(option);
-        });
-      }
-
-      function saveCurrentRoute() {
-        const destInput = document.getElementById("dest-search");
-        const dest = destInput.value.trim();
-        if (!dest || !distanceKm) return;
-
-        const routes = loadSavedRoutes();
-        routes[normalizeDestKey(dest)] = {
-          label: dest,
-          km: distanceKm,
-          roundTrip: document.getElementById("sim-round-trip").value,
-          tollOneWay: tollOneWayValue,
-          vehicleType: document.getElementById("sim-vehicle-type").value,
-          tractor: document.getElementById("sim-tractor").value,
-        };
-        localStorage.setItem(SAVED_ROUTES_KEY, JSON.stringify(routes));
-        refreshDestRoutesList();
-      }
-
-      function applySavedRoute(route) {
-        document.getElementById("route-distance-km").value = route.km;
-        distanceKm = parseFloat(route.km) || 0;
-        const isRoundTrip = (route.roundTrip || "nao") === "sim";
-        document.getElementById("sim-round-trip").value = isRoundTrip
-          ? "sim"
-          : "nao";
-        tollOneWayValue = parseFloat(route.tollOneWay) || 0;
-        if (tollOneWayValue > 0) {
-          document.getElementById("sim-toll").value = (
-            isRoundTrip ? tollOneWayValue * 2 : tollOneWayValue
-          ).toFixed(2);
-        }
-        if (route.vehicleType) {
-          document.getElementById("sim-vehicle-type").value =
-            route.vehicleType;
-          onVehicleChange();
-        }
-        if (route.tractor) {
-          document.getElementById("sim-tractor").value = route.tractor;
-          onTractorChange();
-        }
-        updateVariableCostsFromDistance();
-        updateArlaFromTrip();
-        recalculatePercentages();
-      }
-
       function onDestSearchInput(query) {
         const gmapsLink = document.getElementById("google-maps-link");
         gmapsLink.href = query.trim()
           ? "https://www.google.com/maps/search/?api=1&query=" +
             encodeURIComponent(query)
           : "https://www.google.com/maps";
-
-        const routes = loadSavedRoutes();
-        const match = routes[normalizeDestKey(query)];
-        if (match) applySavedRoute(match);
       }
 
       function onDistanceManualEdit() {
@@ -1241,8 +1159,6 @@
           document.getElementById("pct-toll").textContent =
             `${tollPct.toFixed(1)}% do frete`;
         }
-
-        saveCurrentRoute();
       }
 
       // ==========================================================
@@ -1267,7 +1183,6 @@
         document.getElementById("sim-taxes").value = TAXES_DEFAULT_PCT;
         document.getElementById("sim-arla-price").value =
           ARLA_PRICE_DEFAULT.toFixed(2);
-        refreshDestRoutesList();
         onVehicleChange();
         updateArlaFromTrip();
         recalculatePercentages();
