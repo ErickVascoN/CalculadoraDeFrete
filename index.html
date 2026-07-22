@@ -6,6 +6,8 @@
     <title>Zanattex - Calculadora Para Formação de Preço de Frete</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase (banco de dados na nuvem, para salvar os cálculos por cliente) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Google Fonts & Material Icons -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
@@ -52,7 +54,8 @@
             type="password"
             id="gate-password"
             placeholder="Senha de acesso"
-            onkeydown="if (event.key === 'Enter') checkGatePassword();"
+            onkeydown="if (event.key === 'Enter') checkGatePassword(); checkGateCapsLock(event);"
+            onkeyup="checkGateCapsLock(event)"
             class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 pr-10 text-sm focus:ring-2 focus:ring-red-500 outline-none"
           />
           <button
@@ -67,6 +70,13 @@
             >
           </button>
         </div>
+        <p
+          id="gate-capslock"
+          class="text-xs text-amber-600 -mt-2 hidden flex items-center gap-1"
+        >
+          <span class="material-icons text-sm">warning</span>
+          Caps Lock ativado
+        </p>
         <p id="gate-error" class="text-xs text-rose-600 -mt-2 hidden">
           Senha incorreta. Tente novamente.
         </p>
@@ -99,12 +109,21 @@
           Guia Técnico e Simulador de Custos Logísticos
         </p>
       </div>
-      <div class="flex justify-center md:justify-end">
+      <div
+        class="flex justify-center md:justify-end items-center gap-2 flex-wrap"
+      >
         <div
           class="text-xs bg-red-900/40 border border-red-700/50 px-3 py-1.5 rounded-full text-red-200"
         >
           Foco em Cargas Fracionadas e Cubadas (Têxtil)
         </div>
+        <button
+          onclick="openAnalytics()"
+          class="flex items-center gap-1 text-xs bg-white/10 hover:bg-white/20 border border-white/20 px-3 py-1.5 rounded-full text-white transition"
+        >
+          <span class="material-icons text-sm">bar_chart</span>
+          Dados &amp; Análises
+        </button>
       </div>
     </header>
 
@@ -537,6 +556,39 @@
               >local_shipping</span
             >
           </div>
+
+          <!-- Salvar cálculo por cliente -->
+          <div
+            class="border border-slate-200 rounded-xl p-3 flex flex-col gap-2 mt-1"
+          >
+            <label class="text-xs font-semibold text-slate-500 uppercase"
+              >Cliente</label
+            >
+            <input
+              type="text"
+              id="sim-client-name"
+              list="clients-datalist"
+              placeholder="Nome do cliente... (preenchido a partir do destino)"
+              oninput="onClientNameManualEdit()"
+              class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+            />
+            <datalist id="clients-datalist"></datalist>
+            <div class="flex gap-2 items-center">
+              <input
+                type="date"
+                id="sim-calc-date"
+                class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+              />
+              <button
+                onclick="saveCalculation()"
+                class="flex-1 flex items-center justify-center gap-1 bg-blue-950 hover:bg-blue-900 text-white font-semibold rounded-xl px-3 py-2 text-sm transition"
+              >
+                <span class="material-icons text-sm">save</span>
+                Salvar Cálculo
+              </button>
+            </div>
+            <p id="save-status" class="text-[11px] leading-snug"></p>
+          </div>
         </div>
       </section>
 
@@ -709,6 +761,131 @@
       </section>
     </main>
 
+    <!-- Modal: Dados & Análises -->
+    <div
+      id="analytics-modal"
+      class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4 py-6"
+    >
+      <div
+        class="bg-white rounded-2xl shadow-lg border border-slate-200 w-full max-w-4xl max-h-[90vh] flex flex-col"
+      >
+        <div
+          class="flex items-center justify-between px-5 py-4 border-b border-slate-200"
+        >
+          <div class="flex items-center gap-2">
+            <span class="material-icons text-red-600">bar_chart</span>
+            <h2 class="font-semibold text-blue-950 text-lg">
+              Dados &amp; Análises
+            </h2>
+          </div>
+          <button
+            onclick="closeAnalytics()"
+            class="text-slate-400 hover:text-slate-600"
+          >
+            <span class="material-icons">close</span>
+          </button>
+        </div>
+
+        <div class="px-5 py-4 flex flex-col gap-4 overflow-y-auto">
+          <!-- Filtros -->
+          <div class="flex flex-wrap gap-3 items-end">
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >Mês</label
+              >
+              <input
+                type="month"
+                id="analytics-month"
+                onchange="loadAnalytics()"
+                class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none"
+              />
+            </div>
+            <div class="flex flex-col gap-1">
+              <label class="text-xs font-semibold text-slate-500 uppercase"
+                >Cliente</label
+              >
+              <select
+                id="analytics-client"
+                onchange="loadAnalytics()"
+                class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-red-500 outline-none min-w-[10rem]"
+              >
+                <option value="">Todos os clientes</option>
+              </select>
+            </div>
+            <button
+              onclick="loadAnalytics()"
+              class="text-xs bg-slate-100 hover:bg-slate-200 border border-slate-300 px-3 py-2 rounded-xl transition"
+            >
+              Atualizar
+            </button>
+          </div>
+
+          <!-- Resumo -->
+          <div
+            class="bg-red-50 border border-red-100 rounded-xl p-4 flex justify-between items-center"
+          >
+            <div>
+              <p class="text-xs text-red-600 font-semibold uppercase">
+                Frete Total Arrecadado no Período
+              </p>
+              <h3
+                id="analytics-total-freight"
+                class="text-2xl font-extrabold text-red-900"
+              >
+                R$ 0,00
+              </h3>
+            </div>
+            <span id="analytics-count" class="text-xs text-slate-500"
+              >0 cálculos</span
+            >
+          </div>
+
+          <!-- Totais por indicador -->
+          <div>
+            <h3
+              class="text-xs font-semibold text-slate-500 uppercase mb-2 pb-1 border-b border-slate-200"
+            >
+              Totais por Indicador
+            </h3>
+            <div
+              id="analytics-indicators"
+              class="grid grid-cols-2 sm:grid-cols-3 gap-2"
+            ></div>
+          </div>
+
+          <!-- Tabela de cálculos -->
+          <div>
+            <h3
+              class="text-xs font-semibold text-slate-500 uppercase mb-2 pb-1 border-b border-slate-200"
+            >
+              Cálculos Salvos
+            </h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs text-left">
+                <thead class="text-slate-500 uppercase">
+                  <tr class="border-b border-slate-200">
+                    <th class="py-1.5 pr-2">Data</th>
+                    <th class="py-1.5 pr-2">Cliente</th>
+                    <th class="py-1.5 pr-2">Destino</th>
+                    <th class="py-1.5 pr-2">Km</th>
+                    <th class="py-1.5 pr-2 text-right">Frete Total</th>
+                    <th class="py-1.5 pr-2"></th>
+                  </tr>
+                </thead>
+                <tbody id="analytics-table-body"></tbody>
+              </table>
+              <p
+                id="analytics-empty"
+                class="hidden text-center text-slate-400 text-xs py-4"
+              >
+                Nenhum cálculo salvo neste período.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Footer Summary -->
     <footer
       class="hidden bg-white border-t border-slate-200 px-6 py-4 text-center text-xs text-slate-400"
@@ -735,6 +912,14 @@
         document.querySelector("footer").classList.remove("hidden");
       }
 
+      function checkGateCapsLock(event) {
+        const warning = document.getElementById("gate-capslock");
+        const isCapsOn =
+          typeof event.getModifierState === "function" &&
+          event.getModifierState("CapsLock");
+        warning.classList.toggle("hidden", !isCapsOn);
+      }
+
       function toggleGatePasswordVisibility() {
         const input = document.getElementById("gate-password");
         const icon = document.getElementById("gate-password-icon");
@@ -758,6 +943,362 @@
 
       if (sessionStorage.getItem(GATE_SESSION_KEY) === "1") {
         unlockApp();
+      }
+
+      // ==========================================================
+      // Banco de dados (Supabase) — salva cada cálculo vinculado a um
+      // cliente para depois consultar gastos totais do mês por
+      // indicador e o frete arrecadado. Preencha SUPABASE_URL e
+      // SUPABASE_ANON_KEY com os dados do seu projeto (Project
+      // Settings -> API, no painel do Supabase) para ativar o salvamento.
+      // ==========================================================
+      const SUPABASE_URL = "https://hawsfyinydwcdofunzwp.supabase.co";
+      const SUPABASE_ANON_KEY = "sb_publishable_QqPTK1Zse3UnZh8nYNhcSw_ViGpWjgv";
+
+      const db =
+        SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20
+          ? supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+          : null;
+
+      const INDICATOR_LABELS = {
+        diesel: "Combustível / Diesel",
+        driver: "Motorista / Diárias",
+        toll: "Pedágio",
+        maintenance: "Manutenção",
+        arla: "Arla 32",
+        depreciation: "Depreciação",
+        insurance: "Seguro",
+        gris_total: "GRIS (Risco)",
+        taxes_value: "Impostos",
+        fine: "Multa",
+      };
+
+      async function ensureClientId(name) {
+        const trimmed = name.trim();
+        if (!trimmed) return null;
+
+        const { data: existing } = await db
+          .from("clients")
+          .select("id")
+          .ilike("name", trimmed)
+          .maybeSingle();
+        if (existing) return existing.id;
+
+        const { data: created, error } = await db
+          .from("clients")
+          .insert({ name: trimmed })
+          .select("id")
+          .single();
+        if (error) throw error;
+        return created.id;
+      }
+
+      async function saveCalculation() {
+        const statusEl = document.getElementById("save-status");
+        if (!db) {
+          statusEl.textContent =
+            "Banco de dados não configurado (defina SUPABASE_URL e SUPABASE_ANON_KEY no código).";
+          statusEl.className = "text-[11px] text-rose-600 leading-snug";
+          return;
+        }
+
+        const clientName = document.getElementById("sim-client-name").value;
+        if (!clientName.trim()) {
+          statusEl.textContent = "Informe o nome do cliente antes de salvar.";
+          statusEl.className = "text-[11px] text-rose-600 leading-snug";
+          return;
+        }
+
+        statusEl.textContent = "Salvando...";
+        statusEl.className = "text-[11px] text-slate-500 leading-snug";
+
+        try {
+          const clientId = await ensureClientId(clientName);
+
+          const val = (id) =>
+            parseFloat(document.getElementById(id).value) || 0;
+          const taxesPct = val("sim-taxes");
+          const cargoValue = val("sim-cargo-value");
+          const riskPct = val("sim-risk");
+          const grisTotal = cargoValue * (riskPct / 100);
+          const coreCosts =
+            val("sim-diesel") +
+            val("sim-driver") +
+            val("sim-toll") +
+            val("sim-maint") +
+            val("sim-arla") +
+            val("sim-fine") +
+            val("sim-insurance");
+          const baseCosts = coreCosts + val("sim-depreciation") + grisTotal;
+          const taxesValue = baseCosts * (taxesPct / 100);
+          const costs = baseCosts + taxesValue;
+          const profit = costs * (val("sim-profit") / 100);
+          const totalFreight = costs + profit;
+
+          const calcDate =
+            document.getElementById("sim-calc-date").value ||
+            new Date().toISOString().slice(0, 10);
+
+          const { error } = await db.from("freight_calculations").insert({
+            client_id: clientId,
+            calc_date: calcDate,
+            destination: document.getElementById("dest-search").value || null,
+            distance_km: distanceKm || null,
+            round_trip:
+              document.getElementById("sim-round-trip").value === "sim",
+            vehicle_id: document.getElementById("sim-vehicle-type").value,
+            tractor_id: document.getElementById("sim-tractor").value || null,
+            diesel: val("sim-diesel"),
+            driver: val("sim-driver"),
+            toll: val("sim-toll"),
+            maintenance: val("sim-maint"),
+            arla: val("sim-arla"),
+            depreciation: val("sim-depreciation"),
+            insurance: val("sim-insurance"),
+            cargo_value: cargoValue,
+            risk_pct: riskPct,
+            gris_total: grisTotal,
+            taxes_pct: taxesPct,
+            taxes_value: taxesValue,
+            profit_pct: val("sim-profit"),
+            fine: val("sim-fine"),
+            total_freight: totalFreight,
+          });
+          if (error) throw error;
+
+          statusEl.textContent = "Cálculo salvo com sucesso!";
+          statusEl.className = "text-[11px] text-emerald-600 leading-snug";
+        } catch (err) {
+          statusEl.textContent = "Erro ao salvar: " + err.message;
+          statusEl.className = "text-[11px] text-rose-600 leading-snug";
+        }
+      }
+
+      async function populateClientsList() {
+        if (!db) return;
+        const { data, error } = await db
+          .from("clients")
+          .select("id, name")
+          .order("name");
+        if (error) return;
+
+        const datalist = document.getElementById("clients-datalist");
+        datalist.innerHTML = data
+          .map((c) => `<option value="${c.name}"></option>`)
+          .join("");
+
+        const select = document.getElementById("analytics-client");
+        select.innerHTML =
+          `<option value="">Todos os clientes</option>` +
+          data.map((c) => `<option value="${c.id}">${c.name}</option>`).join("");
+      }
+
+      function openAnalytics() {
+        document.getElementById("analytics-modal").classList.remove("hidden");
+        const monthInput = document.getElementById("analytics-month");
+        if (!monthInput.value) {
+          monthInput.value = new Date().toISOString().slice(0, 7);
+        }
+        populateClientsList().then(loadAnalytics);
+      }
+
+      function closeAnalytics() {
+        document.getElementById("analytics-modal").classList.add("hidden");
+      }
+
+      const pendingDeleteConfirm = new Set();
+
+      async function deleteCalculation(id, btn) {
+        if (!db) return;
+
+        if (!pendingDeleteConfirm.has(id)) {
+          pendingDeleteConfirm.add(id);
+          btn.innerHTML =
+            '<span class="text-[10px] font-semibold text-rose-600">Confirmar?</span>';
+          setTimeout(() => {
+            if (pendingDeleteConfirm.has(id)) {
+              pendingDeleteConfirm.delete(id);
+              loadAnalytics();
+            }
+          }, 3000);
+          return;
+        }
+
+        pendingDeleteConfirm.delete(id);
+        const { error } = await db
+          .from("freight_calculations")
+          .delete()
+          .eq("id", id);
+        if (!error) loadAnalytics();
+      }
+
+      async function loadAnalytics() {
+        if (!db) {
+          const emptyMsg = document.getElementById("analytics-empty");
+          emptyMsg.textContent =
+            "Banco de dados não configurado (defina SUPABASE_URL e SUPABASE_ANON_KEY no código).";
+          emptyMsg.classList.remove("hidden");
+          return;
+        }
+
+        const month = document.getElementById("analytics-month").value;
+        const clientId = document.getElementById("analytics-client").value;
+
+        let query = db.from("freight_calculations").select("*");
+        if (month) {
+          const [year, mon] = month.split("-").map(Number);
+          const start = `${month}-01`;
+          const endDate = new Date(year, mon, 1).toISOString().slice(0, 10);
+          query = query.gte("calc_date", start).lt("calc_date", endDate);
+        }
+        if (clientId) {
+          query = query.eq("client_id", clientId);
+        }
+        query = query.order("calc_date", { ascending: false });
+
+        const { data, error } = await query;
+        if (error) {
+          document.getElementById("analytics-empty").textContent =
+            "Erro ao carregar dados: " + error.message;
+          document.getElementById("analytics-empty").classList.remove("hidden");
+          return;
+        }
+
+        const clientNames = {};
+        document
+          .getElementById("analytics-client")
+          .querySelectorAll("option")
+          .forEach((opt) => {
+            if (opt.value) clientNames[opt.value] = opt.textContent;
+          });
+
+        const totalFreight = data.reduce(
+          (sum, row) => sum + Number(row.total_freight || 0),
+          0,
+        );
+        document.getElementById("analytics-total-freight").textContent =
+          totalFreight.toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+        document.getElementById("analytics-count").textContent =
+          `${data.length} cálculo${data.length === 1 ? "" : "s"}`;
+
+        const indicatorTotals = {};
+        Object.keys(INDICATOR_LABELS).forEach((key) => (indicatorTotals[key] = 0));
+        data.forEach((row) => {
+          Object.keys(INDICATOR_LABELS).forEach((key) => {
+            indicatorTotals[key] += Number(row[key] || 0);
+          });
+        });
+
+        document.getElementById("analytics-indicators").innerHTML = Object.entries(
+          indicatorTotals,
+        )
+          .map(
+            ([key, total]) => `
+            <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2">
+              <p class="text-[10px] text-slate-500 uppercase">${INDICATOR_LABELS[key]}</p>
+              <p class="text-sm font-semibold text-blue-950">${total.toLocaleString(
+                "pt-BR",
+                { style: "currency", currency: "BRL" },
+              )}</p>
+            </div>`,
+          )
+          .join("");
+
+        analyticsDataById = {};
+        data.forEach((row) => (analyticsDataById[row.id] = row));
+
+        const tbody = document.getElementById("analytics-table-body");
+        const emptyMsg = document.getElementById("analytics-empty");
+        if (data.length === 0) {
+          tbody.innerHTML = "";
+          emptyMsg.textContent = "Nenhum cálculo salvo neste período.";
+          emptyMsg.classList.remove("hidden");
+        } else {
+          emptyMsg.classList.add("hidden");
+          tbody.innerHTML = data
+            .map((row) => {
+              const dateFmt = new Date(
+                row.calc_date + "T00:00:00",
+              ).toLocaleDateString("pt-BR");
+              const clientLabel = clientNames[row.client_id] || "—";
+              const freightFmt = Number(row.total_freight || 0).toLocaleString(
+                "pt-BR",
+                { style: "currency", currency: "BRL" },
+              );
+              return `
+                <tr class="border-b border-slate-100">
+                  <td class="py-1.5 pr-2">${dateFmt}</td>
+                  <td class="py-1.5 pr-2">${clientLabel}</td>
+                  <td class="py-1.5 pr-2">${row.destination || "—"}</td>
+                  <td class="py-1.5 pr-2">${row.distance_km || "—"}</td>
+                  <td class="py-1.5 pr-2 text-right font-semibold">${freightFmt}</td>
+                  <td class="py-1.5 pr-2 text-right whitespace-nowrap">
+                    <button onclick="toggleCalcDetails('${row.id}')" class="text-slate-400 hover:text-blue-900">
+                      <span class="material-icons text-sm">visibility</span>
+                    </button>
+                    <button onclick="deleteCalculation('${row.id}', this)" class="text-slate-400 hover:text-rose-600">
+                      <span class="material-icons text-sm">delete</span>
+                    </button>
+                  </td>
+                </tr>
+                <tr id="detail-row-${row.id}" class="hidden border-b border-slate-100 bg-slate-50/70">
+                  <td colspan="6" class="py-2 px-2"></td>
+                </tr>`;
+            })
+            .join("");
+        }
+      }
+
+      let analyticsDataById = {};
+
+      function toggleCalcDetails(id) {
+        const detailRow = document.getElementById(`detail-row-${id}`);
+        if (!detailRow) return;
+
+        if (!detailRow.classList.contains("hidden")) {
+          detailRow.classList.add("hidden");
+          return;
+        }
+
+        const row = analyticsDataById[id];
+        const cell = detailRow.querySelector("td");
+        const fmt = (v) =>
+          Number(v || 0).toLocaleString("pt-BR", {
+            style: "currency",
+            currency: "BRL",
+          });
+
+        const fields = [
+          ...Object.entries(INDICATOR_LABELS).map(([key, label]) => [
+            label,
+            fmt(row[key]),
+          ]),
+          ["Valor da Carga / NF", fmt(row.cargo_value)],
+          ["Risco (%)", `${Number(row.risk_pct || 0)}%`],
+          ["Impostos (%)", `${Number(row.taxes_pct || 0)}%`],
+          ["Margem de Lucro (%)", `${Number(row.profit_pct || 0)}%`],
+          ["Veículo", row.vehicle_id || "—"],
+          ["Cavalo Mecânico", row.tractor_id || "—"],
+          ["Ida e Volta", row.round_trip ? "Sim" : "Não"],
+        ];
+
+        cell.innerHTML = `
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            ${fields
+              .map(
+                ([label, value]) => `
+              <div>
+                <p class="text-[10px] text-slate-500 uppercase">${label}</p>
+                <p class="text-xs font-semibold text-blue-950">${value}</p>
+              </div>`,
+              )
+              .join("")}
+          </div>`;
+
+        detailRow.classList.remove("hidden");
       }
 
       // ==========================================================
@@ -788,12 +1329,28 @@
         recalculatePercentages();
       }
 
+      // ==========================================================
+      // Cliente = destino (na maioria das viagens): o campo "Cliente"
+      // acompanha o que é digitado em "Destino da Viagem" enquanto o
+      // usuário não editar o campo Cliente manualmente. Uma vez editado
+      // à mão, para de seguir o destino (até a página ser recarregada).
+      // ==========================================================
+      let clientNameManuallyEdited = false;
+
+      function onClientNameManualEdit() {
+        clientNameManuallyEdited = true;
+      }
+
       function onDestSearchInput(query) {
         const gmapsLink = document.getElementById("google-maps-link");
         gmapsLink.href = query.trim()
           ? "https://www.google.com/maps/search/?api=1&query=" +
             encodeURIComponent(query)
           : "https://www.google.com/maps";
+
+        if (!clientNameManuallyEdited) {
+          document.getElementById("sim-client-name").value = query;
+        }
       }
 
       function onDistanceManualEdit() {
@@ -1181,9 +1738,13 @@
         document.getElementById("sim-taxes").value = TAXES_DEFAULT_PCT;
         document.getElementById("sim-arla-price").value =
           ARLA_PRICE_DEFAULT.toFixed(2);
+        document.getElementById("sim-calc-date").value = new Date()
+          .toISOString()
+          .slice(0, 10);
         onVehicleChange();
         updateArlaFromTrip();
         recalculatePercentages();
+        populateClientsList();
       };
     </script>
   </body>
